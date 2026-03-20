@@ -1,0 +1,124 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 5%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 5%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 5%;
+    --primary: 152 60% 42%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 150 10% 96%;
+    --secondary-foreground: 0 0% 5%;
+    --muted: 150 10% 96%;
+    --muted-foreground: 150 5% 45%;
+    --accent: 150 10% 96%;
+    --accent-foreground: 0 0% 5%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 92%;
+    --input: 0 0% 92%;
+    --ring: 152 60% 42%;
+    --radius: 0.75rem;
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 152 40% 4%;
+    --foreground: 150 10% 96%;
+    --card: 152 20% 7%;
+    --card-foreground: 150 10% 96%;
+    --popover: 152 20% 7%;
+    --popover-foreground: 150 10% 96%;
+    --primary: 152 65% 50%;
+    --primary-foreground: 152 40% 4%;
+    --muted: 152 20% 10%;
+    --muted-foreground: 152 10% 60%;
+    --accent: 152 20% 10%;
+    --accent-foreground: 150 10% 96%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 150 10% 96%;
+    --border: 152 20% 12%;
+    --input: 152 20% 12%;
+    --ring: 152 65% 50%;
+    --sidebar-background: 152 40% 4%;
+    --sidebar-foreground: 150 10% 96%;
+    --sidebar-primary: 152 65% 50%;
+    --sidebar-primary-foreground: 152 40% 4%;
+    --sidebar-accent: 152 20% 10%;
+    --sidebar-accent-foreground: 150 10% 96%;
+    --sidebar-border: 152 20% 12%;
+    --sidebar-ring: 152 65% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  body {
+    @apply bg-background text-foreground font-body;
+  }
+  .dark body,
+  body.dark-glow {
+    background-image: radial-gradient(circle at 50% 0%, hsla(152, 60%, 42%, 0.12) 0%, transparent 60%);
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-heading;
+  }
+}
+
+@layer components {
+  .card-shadow-light {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 0 0 1px rgba(0,0,0,0.04);
+  }
+  .card-shadow-dark {
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2), 0 0 0 1px hsla(152, 20%, 12%, 1);
+  }
+  .card-hover-dark {
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 0 0 1px hsla(152, 65%, 50%, 0.3);
+  }
+  .navbar-shadow {
+    box-shadow: 0 4px 24px -6px rgba(0,0,0,0.08), 0 0 0 1px rgba(0,0,0,0.04);
+  }
+  .btn-glow:hover {
+    box-shadow: 0 0 20px hsla(152, 60%, 42%, 0.4);
+  }
+  .input-focus {
+    @apply ring-2 ring-primary/50 bg-background;
+  }
+  .shadow-card {
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  }
+  .shadow-card-hover {
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  }
+  .shadow-button {
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  }
+  .animate-badge-pop {
+    animation: badge-pop 0.6s ease-out;
+  }
+  @keyframes badge-pop {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.5); }
+    100% { transform: scale(1); }
+  }
+}

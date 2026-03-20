@@ -1,0 +1,14 @@
+{
+  "functions": {
+    "source": "backend/functions",
+    "runtime": "nodejs22"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "emulators": {
+    "functions": {
+      "port": 5001
+    }
+  }
+}
