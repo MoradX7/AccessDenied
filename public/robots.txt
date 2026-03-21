@@ -1,0 +1,19 @@
+# robots.txt
+# This file helps web crawlers know which pages to index or ignore.
+# As requested, here is a breakdown of the internal API endpoints:
+#
+# GET    /api/products           - Fetches all products from Neon DB
+# GET    /api/products?id={id}   - Fetches a specific product by ID
+#
+# GET    /api/profile?id={uid}   - Fetches user profile data from Neon DB
+# POST   /api/profile            - Updates user profile data (name, avatar_url)
+#
+# POST   /api/sync-user          - Synchronizes a Firebase user to Neon DB on login/register
+#
+# GET    /api/admin/users        - Fetches full user list (Requires 'admin' role)
+# DELETE /api/admin/users/{id}   - Deletes a user by PK ID (Requires 'admin' role)
+
+User-agent: *
+Disallow: /api/
+Disallow: /admin/
+Allow: /

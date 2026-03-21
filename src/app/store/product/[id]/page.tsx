@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Minus, Plus, ShoppingCart, CreditCard, ArrowLeft } from "lucide-react";
-import { products } from "@/data/products";
+import { Product } from "@/data/products";
 import { useCart } from "@/context/CartContext";
 import StarRating from "@/components/store/StarRating";
 import { Button } from "@/components/ui/button";
@@ -13,8 +13,35 @@ const ProductDetails = () => {
   const router = useRouter();
   const { addToCart, updateQuantity } = useCart();
   const [quantity, setQuantity] = useState(1);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const product = products.find((p) => p.id === id);
+  useEffect(() => {
+    async function fetchProduct() {
+      if (!id) return;
+      try {
+        const res = await fetch(`/api/products?id=${id}`);
+        if (res.ok) {
+          const data = await res.json();
+          setProduct(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch product", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchProduct();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-4 py-20 text-center flex justify-center items-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
+
   if (!product) {
     return (
       <div className="container mx-auto px-4 py-20 text-center">

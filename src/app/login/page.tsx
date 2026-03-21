@@ -9,8 +9,7 @@ import Navbar from "@/components/layout/Navbar";
 import Link from "next/link";
 import { useToast } from "@/hooks/use-toast";
 import { signInWithEmailAndPassword, signOut } from "firebase/auth";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
-import { firebaseAuth, firebaseDb } from "@/lib/firebaseClient";
+import { firebaseAuth } from "@/lib/firebaseClient";
 
 export default function Login() {
   const router = useRouter();
@@ -51,19 +50,28 @@ export default function Login() {
         return;
       }
 
-      const userRef = doc(firebaseDb, "users", cred.user.uid);
-      getDoc(userRef).then((userDoc) => {
-        if (!userDoc.exists()) {
-          setDoc(userRef, {
-            email: cred.user.email ?? "",
-            name: cred.user.displayName ?? "",
-            role: "user",
-            avatarUrl: null,
-            emailVerified: true,
-            createdAt: serverTimestamp(),
-          }).catch((err) => console.warn("Firestore user doc create", err));
+      await fetch("/api/sync-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uid: cred.user.uid,
+          email: cred.user.email,
+          name: cred.user.displayName || ""
+        })
+      }).catch((err) => console.warn("Sync user failed", err));
+
+      try {
+        const profileRes = await fetch(`/api/profile?id=${cred.user.uid}`);
+        if (profileRes.ok) {
+          const profileData = await profileRes.json();
+          if (profileData.role === "admin") {
+            router.push("/admin");
+            return;
+          }
         }
-      }).catch(() => {});
+      } catch (err) {
+        console.warn("Failed to check user role during login", err);
+      }
 
       router.push("/profile");
     } catch (error: any) {
