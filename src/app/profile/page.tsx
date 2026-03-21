@@ -14,21 +14,7 @@ import {
   User,
 } from "firebase/auth";
 import {
-  doc,
-  getDoc,
-  serverTimestamp,
-  setDoc,
-  updateDoc,
-} from "firebase/firestore";
-import {
-  getDownloadURL,
-  ref,
-  uploadBytes,
-} from "firebase/storage";
-import {
   firebaseAuth,
-  firebaseDb,
-  firebaseStorage,
 } from "@/lib/firebaseClient";
 
 const withTimeout = (promise: Promise<any>, ms: number, message: string) => {
@@ -157,32 +143,32 @@ export default function ProfilePage() {
       return;
     }
 
-    const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
-    const path = `avatars/${user.uid}/${Date.now()}-${safeName}`;
-
     try {
       setUploading(true);
-      const storageRef = ref(firebaseStorage, path);
       
-      await uploadBytes(storageRef, file, {
-        contentType: file.type || "image/jpeg",
-      });
-      
-      const url = await getDownloadURL(storageRef);
-      setAvatarUrl(url);
+      const token = await user.getIdToken();
+      const formData = new FormData();
+      formData.append("file", file);
 
-      const res = await fetch("/api/profile", {
+      const res = await fetch("/api/upload-avatar", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: user.uid,
-          name: displayName,
-          email: user.email,
-          avatar_url: url
-        })
+        headers: {
+          Authorization: `Bearer ${token}`
+        },
+        body: formData,
       });
 
-      if (!res.ok) throw new Error("Database avatar update failed");
+      if (!res.ok) {
+        let errorMsg = "Upload failed";
+        try {
+          const data = await res.json();
+          errorMsg = data.error || errorMsg;
+        } catch(e) {}
+        throw new Error(errorMsg);
+      }
+
+      const data = await res.json();
+      setAvatarUrl(data.url);
 
       toast({
         title: "Profile picture updated",
