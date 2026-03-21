@@ -14,8 +14,7 @@ import {
   updateProfile,
   signOut,
 } from "firebase/auth";
-import { doc, serverTimestamp, setDoc } from "firebase/firestore";
-import { firebaseAuth, firebaseDb } from "@/lib/firebaseClient";
+import { firebaseAuth } from "@/lib/firebaseClient";
 
 export default function Register() {
   const router = useRouter();
@@ -71,15 +70,16 @@ export default function Register() {
         console.warn("Verification email send (background)", err)
       );
 
-      // Firestore user doc in background (profile/login will create if missing).
-      setDoc(doc(firebaseDb, "users", cred.user.uid), {
-        email,
-        name,
-        role: "user",
-        avatarUrl: null,
-        emailVerified: false,
-        createdAt: serverTimestamp(),
-      }).catch((err) => console.warn("Firestore user doc write", err));
+      // Sync user to PostgreSQL backend immediately
+      await fetch("/api/sync-user", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          uid: cred.user.uid,
+          email,
+          name
+        })
+      }).catch((err) => console.warn("Sync new user failed", err));
 
       await signOut(firebaseAuth);
 

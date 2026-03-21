@@ -1,14 +1,42 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { AnimatePresence } from "framer-motion";
-import { products, Category } from "@/data/products";
+import { Product, Category } from "@/data/products";
 import CategoryFilter from "@/components/store/CategoryFilter";
 import ProductCard from "@/components/store/ProductCard";
 
 export default function Store() {
   const [selected, setSelected] = useState<Category | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchProducts() {
+      try {
+        const res = await fetch("/api/products");
+        if (res.ok) {
+          const data = await res.json();
+          setProducts(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch products", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchProducts();
+  }, []);
+
   const filtered = selected ? products.filter((p) => p.category === selected) : products;
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col justify-center items-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">

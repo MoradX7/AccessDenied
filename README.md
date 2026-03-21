@@ -20,19 +20,34 @@ The app uses Firebase Authentication, Firestore, and Storage. Configuration is r
 
 If these variables are missing, the client falls back to built-in defaults for the AccessDenied project so the app can run; for a different Firebase project, set `.env.local` accordingly.
 
-## Auth flows and role-based redirects
+## Architecture & Database Migration (Neon PostgreSQL)
 
-- **Register** (`/register`): Creates a Firebase Auth user and a Firestore `users/{uid}` document with `role: "user"`. Sends an email verification link; after submit, the user is signed out and redirected to `/login`. They must click the verification link (check inbox and spam) before they can log in.
+This application strictly separates Authentication from Database logic for maximum security:
+- **Firebase Authentication** is exclusively used for logging users in and managing sessions.
+- **Neon PostgreSQL** acts as the singular source-of-truth database for all application state. 
+- Client-side database connections are intentionally disabled to prevent malicious tampering. All database connections are handled strictly Server-Side via Next.js API Routes.
 
-- **Login** (`/login`): Requires a verified email. If the email is not verified, the user is signed out and shown a message to verify first. After a successful login:
-  - If the user’s Firestore `users/{uid}.role` is `"admin"`, they are redirected to **`/admin`**.
-  - Otherwise they are redirected to **`/profile`**.
+### Database Setup
+1. Create a Neon Serverless PostgreSQL Database.
+2. Provide the `DATABASE_URL` in `.env.local` alongside your `NEXT_PUBLIC_FIREBASE_*` variables.
+3. Run `npm run seed` or `npx tsx scripts/seed.ts` to automatically populate the Products table and initialize the Users architecture.
 
-- **Forgot password** (`/forgot-password`): Enter email and submit; Firebase sends a password-reset link to that address (if an account exists). The link in the email brings the user back to your app to set a new password; then they can log in at `/login`.
+## Auth Flow & Role-Based Access
 
-- **Profile** (`/profile`): Protected route. Unauthenticated users are redirected to `/login`. Authenticated users can view their email, change their display name, upload a profile picture (stored in Firebase Storage), and log out. For profile picture uploads to work, deploy Storage rules: `firebase deploy --only storage` (see `storage.rules`).
+- **Register/Login:** Upon successful authentication via Firebase, the client securely queries `/api/sync-user` to instantly synchronize or create the user in the PostgreSQL database.
+- **Profile (`/profile`)**: Users can update their avatar and display name. All image files are strictly validated (< 5MB constraint) and uploaded to Firebase Storage, then the PostgreSQL database is populated with the resultant `avatar_url`. 
+- **Admin Panel (`/admin`)**: Fully functional administrative dashboard. 
+  - The client securely verifies if the currently logged-in user possesses `role: "admin"` in the Postgres database. Non-admins are blocked and redirected to the homepage.
+  - Admins can dynamically query, view, and permanently delete any user directly from the PostgreSQL backend integration.
 
-- **Resend verification** (`/resend-verification`): If you didn’t receive the verification email after registering, go here (or use the link on the login page), enter your email and password, and a new verification link will be sent. After clicking it you’re redirected to login, then to profile.
+### Making the first admin
+
+By default, the `users` SQL table assigns `role: 'user'` to every new registering member.
+To make a user (e.g., `pilotst02@gmail.com`) an administrator, you must run the background script:
+```bash
+npx tsx scripts/setup_roles.ts
+```
+This forces the role to `"admin"` inside the PostgreSQL database for the requested email. When that user logs in, they will be given access to `/admin`.
 
 ### Verification emails not arriving?
 

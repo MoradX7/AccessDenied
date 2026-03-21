@@ -31,6 +31,13 @@ import {
   firebaseStorage,
 } from "@/lib/firebaseClient";
 
+const withTimeout = (promise: Promise<any>, ms: number, message: string) => {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error(message)), ms))
+  ]);
+};
+
 export default function ProfilePage() {
   const router = useRouter();
   const { toast } = useToast();
@@ -51,24 +58,31 @@ export default function ProfilePage() {
       setUser(current);
       setDisplayName(current.displayName ?? "");
 
-      const userRef = doc(firebaseDb, "users", current.uid);
-      const snap = await getDoc(userRef);
-      if (snap.exists()) {
-        const data = snap.data();
-        if ((data.role as string) === "admin") {
-          router.replace("/admin");
-          return;
+      try {
+        const res = await fetch(`/api/profile?id=${current.uid}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.avatar_url) {
+            setAvatarUrl(data.avatar_url);
+          }
+          if (data.name) {
+            setDisplayName(data.name);
+          }
+        } else if (res.status === 404) {
+          // Create initial profile
+          await fetch("/api/profile", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: current.uid,
+              name: current.displayName || "",
+              email: current.email,
+              avatar_url: current.photoURL || null,
+            })
+          });
         }
-        if (typeof data.avatarUrl === "string") {
-          setAvatarUrl(data.avatarUrl);
-        }
-        if (!data.createdAt) {
-          await setDoc(
-            userRef,
-            { createdAt: serverTimestamp() },
-            { merge: true },
-          );
-        }
+      } catch (err) {
+        console.error("Error fetching profile from db", err);
       }
     });
 
@@ -84,33 +98,38 @@ export default function ProfilePage() {
       toast({
         title: "Name required",
         description: "Please enter a display name.",
+        variant: "destructive"
       });
       return;
     }
 
     try {
       setSaving(true);
-      await updateProfile(user, { displayName });
+      await withTimeout(updateProfile(user, { displayName }), 10000, "Update profile timed out");
 
-      await setDoc(
-        doc(firebaseDb, "users", user.uid),
-        {
+      const res = await fetch("/api/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: user.uid,
           name: displayName,
           email: user.email,
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true },
-      );
+          avatar_url: avatarUrl
+        })
+      });
+
+      if (!res.ok) throw new Error("Database update failed");
 
       toast({
         title: "Profile updated",
         description: "Your display name has been saved.",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Save profile error", error);
       toast({
         title: "Error",
-        description: "Could not update profile. Please try again.",
+        description: error.message || "Could not update profile. Please try again.",
+        variant: "destructive"
       });
     } finally {
       setSaving(false);
@@ -124,6 +143,16 @@ export default function ProfilePage() {
       toast({
         title: "Invalid file",
         description: "Please choose an image file (e.g. JPG, PNG).",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please choose an image smaller than 5MB.",
+        variant: "destructive"
       });
       return;
     }
@@ -134,27 +163,37 @@ export default function ProfilePage() {
     try {
       setUploading(true);
       const storageRef = ref(firebaseStorage, path);
+      
       await uploadBytes(storageRef, file, {
         contentType: file.type || "image/jpeg",
       });
+      
       const url = await getDownloadURL(storageRef);
-
       setAvatarUrl(url);
-      await updateDoc(doc(firebaseDb, "users", user.uid), {
-        avatarUrl: url,
-        updatedAt: serverTimestamp(),
+
+      const res = await fetch("/api/profile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: user.uid,
+          name: displayName,
+          email: user.email,
+          avatar_url: url
+        })
       });
+
+      if (!res.ok) throw new Error("Database avatar update failed");
 
       toast({
         title: "Profile picture updated",
         description: "Your new avatar has been uploaded.",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Avatar upload error", error);
       toast({
         title: "Upload failed",
-        description:
-          "Could not upload. Make sure Storage is enabled and rules allow uploads to avatars/ (see storage.rules).",
+        description: error.message || "Could not upload. Make sure Storage is enabled and rules allow uploads to avatars/ (see storage.rules).",
+        variant: "destructive"
       });
     } finally {
       setUploading(false);
@@ -197,8 +236,9 @@ export default function ProfilePage() {
               )}
             </div>
             <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">
+              <label className="block text-sm font-medium text-foreground mb-1.5 flex items-center gap-2">
                 Profile picture
+                {uploading && <span className="text-xs text-primary animate-pulse">(Uploading...)</span>}
               </label>
               <Input
                 type="file"

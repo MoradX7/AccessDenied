@@ -8,7 +8,7 @@ import React, {
   useEffect,
   useRef,
 } from "react";
-import { Product, products } from "@/data/products";
+import { Product } from "@/data/products";
 import { onAuthStateChanged } from "firebase/auth";
 import { doc, getDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { firebaseAuth, firebaseDb } from "@/lib/firebaseClient";
@@ -34,14 +34,21 @@ function cartToFirestore(items: CartItem[]) {
   return items.map((i) => ({ productId: i.product.id, quantity: i.quantity }));
 }
 
-function firestoreToCart(data: { productId: string; quantity: number }[]): CartItem[] {
+async function firestoreToCart(data: { productId: string; quantity: number }[]): Promise<CartItem[]> {
   if (!Array.isArray(data)) return [];
   const out: CartItem[] = [];
-  for (const row of data) {
-    const product = products.find((p) => p.id === row.productId);
-    if (product && row.quantity >= 1) {
-      out.push({ product, quantity: row.quantity });
+  try {
+    const res = await fetch("/api/products");
+    if (!res.ok) throw new Error("Failed to fetch products");
+    const products: Product[] = await res.json();
+    for (const row of data) {
+      const product = products.find((p) => p.id === row.productId);
+      if (product && row.quantity >= 1) {
+        out.push({ product, quantity: row.quantity });
+      }
     }
+  } catch (err) {
+    console.error(err);
   }
   return out;
 }
@@ -64,7 +71,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const snap = await getDoc(doc(firebaseDb, "users", user.uid));
         const data = snap.data();
         const cart = data?.cart;
-        const loaded = Array.isArray(cart) ? firestoreToCart(cart) : [];
+        const loaded = Array.isArray(cart) ? await firestoreToCart(cart) : [];
         setItems(loaded);
       } catch (err) {
         console.warn("Cart load failed", err);
