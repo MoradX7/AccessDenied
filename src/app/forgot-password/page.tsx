@@ -85,7 +85,7 @@ export default function ForgotPasswordPage() {
           {sent ? (
             <div className="space-y-4">
               <p className="text-sm text-foreground text-center">
-                Check your inbox (and spam folder) for the reset link.
+                A verification link has been sent to your email address. Please check your inbox, If you do not see it, check your spam folder.
               </p>
               <Button
                 variant="outline"

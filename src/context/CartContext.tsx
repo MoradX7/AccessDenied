@@ -23,6 +23,7 @@ interface CartContextType {
   addToCart: (product: Product) => void;
   removeFromCart: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
+  clearCart: () => void;
   totalItems: number;
   totalPrice: number;
   justAdded: boolean;
@@ -133,6 +134,11 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
     [persistCart]
   );
 
+  const clearCart = useCallback(() => {
+    setItems([]);
+    persistCart([]);
+  }, [persistCart]);
+
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
   const totalPrice = items.reduce((sum, i) => sum + i.product.price * i.quantity, 0);
 
@@ -143,6 +149,7 @@ export const CartProvider: React.FC<{ children: React.ReactNode }> = ({ children
         addToCart,
         removeFromCart,
         updateQuantity,
+        clearCart,
         totalItems,
         totalPrice,
         justAdded,
