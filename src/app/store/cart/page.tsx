@@ -1,12 +1,63 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { Minus, Plus, Trash2, ShoppingBag, ArrowLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Minus, Plus, Trash2, ShoppingBag, ArrowLeft, Loader2 } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { Button } from "@/components/ui/button";
+import { firebaseAuth } from "@/lib/firebaseClient";
+import { toast } from "sonner";
 
 const Cart = () => {
-  const { items, updateQuantity, removeFromCart, totalPrice } = useCart();
+  const { items, updateQuantity, removeFromCart, clearCart, totalPrice } = useCart();
+  const router = useRouter();
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
+
+  const handleCheckout = async () => {
+    try {
+      setIsCheckingOut(true);
+      
+      const user = firebaseAuth.currentUser;
+      if (!user) {
+        toast.error("Please log in to purchase items.");
+        setIsCheckingOut(false);
+        return;
+      }
+
+      const token = await user.getIdToken();
+      
+      const checkoutItems = items.map((i) => ({
+        productId: i.product.id,
+        quantity: i.quantity,
+      }));
+
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ items: checkoutItems }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to process checkout");
+      }
+
+      clearCart();
+      toast.success("Order placed successfully!");
+      router.push(`/store/checkout-success?orderId=${data.order.id}`);
+      
+    } catch (err: any) {
+      console.error("Checkout error", err);
+      toast.error(err.message || "An error occurred during checkout");
+    } finally {
+      setIsCheckingOut(false);
+    }
+  };
 
   if (items.length === 0) {
     return (
@@ -79,8 +130,18 @@ const Cart = () => {
           <span className="font-heading text-lg font-semibold">Total</span>
           <span className="font-heading text-2xl font-bold">${totalPrice.toFixed(2)}</span>
         </div>
-        <Button size="lg" className="w-full gap-2">
-          <ShoppingBag size={18} /> Purchase
+        <Button 
+          size="lg" 
+          className="w-full gap-2"
+          onClick={handleCheckout}
+          disabled={isCheckingOut}
+        >
+          {isCheckingOut ? (
+            <Loader2 className="animate-spin" size={18} />
+          ) : (
+            <ShoppingBag size={18} />
+          )}
+          {isCheckingOut ? "Processing..." : "Purchase"}
         </Button>
       </div>
     </div>

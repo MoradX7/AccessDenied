@@ -25,6 +25,7 @@ export default function Register() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [registered, setRegistered] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -89,7 +90,7 @@ export default function Register() {
           "We sent a verification link. Check your inbox and spam folder, then click the link and log in.",
       });
 
-      router.push("/login");
+      setRegistered(true);
     } catch (error: unknown) {
       const err = error as { code?: string };
       console.error("Registration error", err);
@@ -122,85 +123,104 @@ export default function Register() {
           <h1 className="font-heading font-bold text-2xl text-foreground mb-6 text-center">
             Register
           </h1>
-          <form className="space-y-4" onSubmit={handleSubmit}>
-            <div>
-              <label
-                htmlFor="name"
-                className="block text-sm font-medium text-foreground mb-1.5"
+
+          {registered ? (
+            <div className="space-y-4">
+              <p className="text-sm text-foreground text-center">
+                A verification link has been sent to your email address. Please check your inbox, If you do not see it, check your spam folder.
+              </p>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => router.push("/login")}
               >
-                Full Name
-              </label>
-              <Input
-                id="name"
-                type="text"
-                placeholder="Your full name"
-                className="h-12 rounded-xl bg-muted/50 focus:ring-2 focus:ring-primary/50 focus:bg-background"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
+                Go to login
+              </Button>
             </div>
-            <div>
-              <label
-                htmlFor="email"
-                className="block text-sm font-medium text-foreground mb-1.5"
+          ) : (
+            <form className="space-y-4" onSubmit={handleSubmit}>
+              <div>
+                <label
+                  htmlFor="name"
+                  className="block text-sm font-medium text-foreground mb-1.5"
+                >
+                  Full Name
+                </label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Your full name"
+                  className="h-12 rounded-xl bg-muted/50 focus:ring-2 focus:ring-primary/50 focus:bg-background"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="email"
+                  className="block text-sm font-medium text-foreground mb-1.5"
+                >
+                  Email
+                </label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="you@example.com"
+                  className="h-12 rounded-xl bg-muted/50 focus:ring-2 focus:ring-primary/50 focus:bg-background"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="password"
+                  className="block text-sm font-medium text-foreground mb-1.5"
+                >
+                  Password
+                </label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="••••••••"
+                  className="h-12 rounded-xl bg-muted/50 focus:ring-2 focus:ring-primary/50 focus:bg-background"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+              <div>
+                <label
+                  htmlFor="confirmPassword"
+                  className="block text-sm font-medium text-foreground mb-1.5"
+                >
+                  Confirm Password
+                </label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="••••••••"
+                  className="h-12 rounded-xl bg-muted/50 focus:ring-2 focus:ring-primary/50 focus:bg-background"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                />
+              </div>
+              <Button
+                type="submit"
+                className="w-full h-11 rounded-xl btn-glow transition-all duration-200 hover:scale-[0.98]"
+                disabled={loading}
               >
-                Email
-              </label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                className="h-12 rounded-xl bg-muted/50 focus:ring-2 focus:ring-primary/50 focus:bg-background"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="password"
-                className="block text-sm font-medium text-foreground mb-1.5"
-              >
-                Password
-              </label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="••••••••"
-                className="h-12 rounded-xl bg-muted/50 focus:ring-2 focus:ring-primary/50 focus:bg-background"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </div>
-            <div>
-              <label
-                htmlFor="confirmPassword"
-                className="block text-sm font-medium text-foreground mb-1.5"
-              >
-                Confirm Password
-              </label>
-              <Input
-                id="confirmPassword"
-                type="password"
-                placeholder="••••••••"
-                className="h-12 rounded-xl bg-muted/50 focus:ring-2 focus:ring-primary/50 focus:bg-background"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-              />
-            </div>
-            <Button
-              type="submit"
-              className="w-full h-11 rounded-xl btn-glow transition-all duration-200 hover:scale-[0.98]"
-              disabled={loading}
-            >
-              {loading ? "Registering..." : "Register"}
-            </Button>
-          </form>
-          <p className="text-sm text-muted-foreground text-center mt-6">
-            Already have an account?{" "}
-            <Link href="/login" className="text-primary hover:underline">
-              Login
-            </Link>
-          </p>
+                {loading ? "Registering..." : "Register"}
+              </Button>
+            </form>
+          )}
+
+          {!registered && (
+            <p className="text-sm text-muted-foreground text-center mt-6">
+              Already have an account?{" "}
+              <Link href="/login" className="text-primary hover:underline">
+                Login
+              </Link>
+            </p>
+          )}
         </motion.div>
       </main>
     </div>

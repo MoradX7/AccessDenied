@@ -16,6 +16,7 @@ interface User {
   email: string;
   avatar_url: string | null;
   created_at: string;
+  role: string | null;
 }
 
 export default function Admin() {
@@ -101,6 +102,40 @@ export default function Admin() {
     }
   }
 
+  async function handleToggleRole(id: string, currentRole: string) {
+    const newRole = currentRole === "admin" ? "user" : "admin";
+    try {
+      const token = await firebaseAuth.currentUser?.getIdToken();
+      if (!token) throw new Error("Not authenticated");
+
+      const res = await fetch(`/api/admin/users/role`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ userId: id, newRole }),
+      });
+      
+      const data = await res.json();
+      if (res.ok) {
+        setUsers((prev) => prev.map((u) => u.id === id ? { ...u, role: newRole } : u));
+        toast({
+          title: "Role updated",
+          description: `User role has been changed to ${newRole}.`,
+        });
+      } else {
+        throw new Error(data.error || "Failed to update role");
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error updating role",
+        description: error.message || "Could not update user role.",
+        variant: "destructive",
+      });
+    }
+  }
+
   if (!authorized) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -138,6 +173,7 @@ export default function Admin() {
                   <thead>
                     <tr className="border-b border-border bg-muted/50">
                       <th className="px-6 py-4 font-medium text-sm">User</th>
+                      <th className="px-6 py-4 font-medium text-sm">Role</th>
                       <th className="px-6 py-4 font-medium text-sm">Joined</th>
                       <th className="px-6 py-4 font-medium text-sm text-right">Actions</th>
                     </tr>
@@ -163,12 +199,23 @@ export default function Admin() {
                             </div>
                           </div>
                         </td>
+                        <td className="px-6 py-4 font-medium text-sm capitalize">
+                          {user.role || 'user'}
+                        </td>
                         <td className="px-6 py-4">
                           <div className="text-sm">
                             {user.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-right">
+                        <td className="px-6 py-4 text-right space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="bg-transparent"
+                            onClick={() => handleToggleRole(user.id, user.role || 'user')}
+                          >
+                            {user.role === 'admin' ? "Make User" : "Make Admin"}
+                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"
